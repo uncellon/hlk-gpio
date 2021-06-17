@@ -61,4 +61,6 @@ install(
     DESTINATION lib/cmake/${PROJECT_NAME}
 )
 
-add_subdirectory(test)
+if (BUILD_TEST)
+    add_subdirectory(test)
+endif()

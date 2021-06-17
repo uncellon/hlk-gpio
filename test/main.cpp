@@ -32,6 +32,7 @@ int main(int argc, char *argv[]) {
                 std::cout << "unknown error\n";
                 break;
             }
+            exit(EXIT_FAILURE);
         }
     );
 
@@ -53,17 +54,17 @@ int main(int argc, char *argv[]) {
     // Open device
     gpio.open("gpiochip0");
 
-    // Set gpio 21 output mode
-    gpio.setDirection(21, Gpio::Direction::OUTPUT);
+    // Set gpio 4 output mode
+    gpio.setDirection(4, Gpio::Direction::OUTPUT);
 
-    // Set gpio 21 output value
-    gpio.setValue(21, Gpio::Value::LOW);
+    // Set gpio 4 output value
+    gpio.setValue(4, Gpio::Value::LOW);
 
     // Set gpio 4 input mode
-    gpio.setDirection(4, Gpio::Direction::INPUT);
+    gpio.setDirection(21, Gpio::Direction::INPUT);
 
     // Set gpio 4 pull
-    gpio.setPull(4, Gpio::Pull::UP);
+    gpio.setPull(21, Gpio::Pull::UP);
 
     char input;
     std::cout << "press 'y' to on, 'n' to off\n";
@@ -71,11 +72,11 @@ int main(int argc, char *argv[]) {
         std::cin >> input;
         if (input == 'y') {
             std::cout << "switch to on\n";
-            gpio.setValue(21, Gpio::Value::HIGH);
+            gpio.setValue(4, Gpio::Value::HIGH);
         } else if (input == 'n') {
             std::cout << "switch to off\n";
             std::cout << "n\n";
-            gpio.setValue(21, Gpio::Value::LOW);
+            gpio.setValue(4, Gpio::Value::LOW);
         } else {
             std::cout << "wrong input\n";
         }
