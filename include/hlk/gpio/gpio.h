@@ -32,16 +32,16 @@ public:
 protected:
     void polling();
 
-    int fd_;
+    int m_fd;
 
-    std::map<int, int> fdsByPins_; /// for quick access to GPIO num from polling
-    std::map<int, int> pinsByFds_; /// for quick access to GPIO num from polling
-    std::map<int, Direction> directionsByPins_;
-    std::map<int, unsigned int> valuesByFds_;
+    std::map<int, int> m_fdsByPins; /// for quick access to GPIO num from polling
+    std::map<int, int> m_pinsByFds; /// for quick access to GPIO num from polling
+    std::map<int, Direction> m_directionsByPins;
+    std::map<int, unsigned int> m_valuesByFds;
 
-    std::thread *pollingThread_;
-    std::vector<pollfd> pollFds_;
-    bool threadRunning_;
+    std::thread *m_pollingThread;
+    std::vector<pollfd> m_pollFds;
+    bool m_threadRunning;
 };
 
 enum class Gpio::Direction {
