@@ -24,6 +24,7 @@ public:
     void close();
     void setDirection(int pin, Direction direction);
     void setValue(int pin, Value value);
+    Value value(int pin);
     void setPull(int pin, Pull value);
 
     Event<Error> onError;
@@ -56,11 +57,14 @@ enum class Gpio::Error {
     FAILED_TO_SET_VALUE,
     FAILED_TO_MAP_PIN,
     PIN_IS_NOT_IN_OUTPUT_DIRECTION,
-    FAILED_TO_SET_PULL
+    FAILED_TO_SET_PULL,
+    FAILED_TO_GET_VALUE,
+    INVALID_VALUE
 };
 
 enum class Gpio::Value {
-    LOW = 0,
+    IDLE = 0,
+    LOW,
     HIGH
 };
 

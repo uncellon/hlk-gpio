@@ -1,5 +1,6 @@
 #include "gpio.h"
 
+#include <cmath>
 #include <cstring>
 #include <fcntl.h>
 #include <unistd.h>
@@ -143,14 +144,37 @@ void Gpio::setValue(int pin, Value value) {
     case Value::HIGH:
         config.flags |= GPIO_V2_LINE_FLAG_ACTIVE_LOW;
         break;
+    default:
+        onError(Error::INVALID_VALUE);
+        return;
     }
 
     // Apply config
     int ret = ioctl(m_fdsByPins[pin], GPIO_V2_LINE_SET_CONFIG_IOCTL, &config);
     if (ret == -1) {
-        std::string error = strerror(errno);
         onError(Error::FAILED_TO_SET_VALUE);
         return;
+    }
+}
+
+Gpio::Value Gpio::value(int pin) {
+    // Prepare request
+    struct gpio_v2_line_values lineValues;
+    memset(&lineValues, 0, sizeof(lineValues));
+    lineValues.mask = 1;
+
+    // Request
+    int ret = ioctl(m_fdsByPins[pin], GPIO_V2_LINE_GET_VALUES_IOCTL, &lineValues);
+    if (ret == -1) {
+        onError(Error::FAILED_TO_GET_VALUE);
+        return Value::IDLE;
+    }
+    
+    // Check value
+    if (lineValues.bits) {
+        return Value::HIGH;
+    } else {
+        return Value::LOW;
     }
 }
 

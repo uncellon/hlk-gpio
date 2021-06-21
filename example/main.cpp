@@ -47,6 +47,8 @@ int main(int argc, char *argv[]) {
             case Gpio::Value::HIGH:
                 std::cout << pin << " " << "high\n";
                 break;
+            default:
+                break;
             }
         }
     );
@@ -65,6 +67,19 @@ int main(int argc, char *argv[]) {
 
     // Set gpio 4 pull
     gpio.setPull(21, Gpio::Pull::UP);
+
+    // Get current 21 value
+    auto current = gpio.value(21);
+    switch (current) {
+        case Gpio::Value::HIGH:
+            std::cout << "21 is high now\n";
+            break;
+        case Gpio::Value::LOW:
+            std::cout << "21 is low now\n";
+            break;
+        default:
+            break;
+    }
 
     char input;
     std::cout << "press 'y' to on, 'n' to off\n";
