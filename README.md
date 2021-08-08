@@ -1,19 +1,13 @@
 # Homebrew Libraries Kit - GPIO
-## Changelog:
 
+## License
 
+<img align="right" src="https://www.gnu.org/graphics/lgplv3-with-text-154x68.png">
 
-<details>
-<summary>v1.0.1</summary>
+The library is licensed under [GNU Lesser General Public License 3.0](https://www.gnu.org/licenses/lgpl-3.0.txt):
 
-- Added value request
+Copyright © 2021 Dmitry Plastinin
 
-</details>
+Hlk GPIO is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as pubblished by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-
-
-***
-## To do:
-1. Readme
-2. Vector control by mutex
-3. Tests
+Hlk GPIO is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser Public License for more details
