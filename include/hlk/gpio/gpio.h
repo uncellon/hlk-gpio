@@ -1,7 +1,30 @@
+/******************************************************************************
+ * 
+ * Copyright (C) 2021 Dmitry Plastinin
+ * Contact: uncellon@yandex.ru, uncellon@gmail.com, uncellon@mail.ru
+ * 
+ * This file is part of the Hlk Gpio library.
+ * 
+ * Hlk Gpio is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as pubblished by the
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * Hlk Gpio is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser Public License for more
+ * details
+ * 
+ * You should have received a copy of the GNU Lesset General Public License
+ * along with Hlk Gpio. If not, see <https://www.gnu.org/licenses/>.
+ * 
+ *****************************************************************************/
+
 #ifndef HLK_GPIO_H
 #define HLK_GPIO_H
 
 #include <map>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -11,29 +34,83 @@
 namespace Hlk {
 
 class Gpio {
-public:    
-    enum class Direction;
-    enum class Error;
-    enum class Value;
-    enum class Pull;
+public:
+    enum Error {
+        kDeviceNotOpened,
+        kFailedToOpen,
+        kFailedToSetDirection,
+        kFailedToSetValue,
+        kPinIsNotOutput,
+        kPinIsNotInput,
+        kFailedToSetBiasMode,
+        kFailedToGetValue,
+        kInvalidValue,
+        kAlreadyOpened,
+        kFailedToCreatePipe,
+        kPollingError
+    };
+
+    enum Value {
+        kIdle,
+        kLow,
+        kHigh
+    };
+
+    enum Direction {
+        kInput,
+        kOutput
+    };
+    
+    enum BiasMode {
+        kPullDown,
+        kPullUp
+    };
+
+    /**************************************************************************
+     * Constructors / Destructors
+     *************************************************************************/
 
     Gpio();
     ~Gpio();
 
+    /**************************************************************************
+     * Methods
+     *************************************************************************/
+
     void open(const std::string &dev);
     void close();
-    void setDirection(int pin, Direction direction);
-    void setValue(int pin, Value value);
+
+    /**************************************************************************
+     * Accessors / Mutators
+     *************************************************************************/
+
     Value value(int pin);
-    void setPull(int pin, Pull value);
+    void setValue(int pin, Value value);
+
+    void setDirection(int pin, Direction direction);
+
+    void setBiasMode(int pin, BiasMode mode);
+
+    /**************************************************************************
+     * Events
+     *************************************************************************/
 
     Event<Error> onError;
     Event<int, Value> onInputChanged;
 
 protected:
+    /**************************************************************************
+     * Methods (Protected)
+     *************************************************************************/
+
     void polling();
 
+    /**************************************************************************
+     * Members
+     *************************************************************************/
+
     int m_fd;
+    int m_pipe[2];
 
     std::map<int, int> m_fdsByPins; /// for quick access to GPIO num from polling
     std::map<int, int> m_pinsByFds; /// for quick access to GPIO num from polling
@@ -43,35 +120,18 @@ protected:
     std::thread *m_pollingThread;
     std::vector<pollfd> m_pollFds;
     bool m_threadRunning;
+
+    std::mutex m_interruptMutex;
+    std::mutex m_workerThreadMutex;
 };
 
-enum class Gpio::Direction {
-    INPUT = 1,
-    OUTPUT
-};
+// enum class Gpio::Direction ;
 
-enum class Gpio::Error {
-    DEVICE_NOT_OPENED = 1,
-    FAILED_TO_OPEN,
-    FAILED_TO_SET_DIRECTION,
-    FAILED_TO_SET_VALUE,
-    FAILED_TO_MAP_PIN,
-    PIN_IS_NOT_IN_OUTPUT_DIRECTION,
-    FAILED_TO_SET_PULL,
-    FAILED_TO_GET_VALUE,
-    INVALID_VALUE
-};
+// enum class Gpio::Error ;
 
-enum class Gpio::Value {
-    IDLE = 0,
-    LOW,
-    HIGH
-};
+// enum class Gpio::Value ;
 
-enum class Gpio::Pull {
-    DOWN = 0,
-    UP
-};
+// enum class Gpio::BiasMode ;
 
 } // namespace Hlk
 
