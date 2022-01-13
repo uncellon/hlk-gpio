@@ -24,10 +24,7 @@
 #define HLK_GPIO_H
 
 #include <map>
-#include <mutex>
-#include <string>
 #include <thread>
-#include <vector>
 #include <sys/poll.h>
 #include <hlk/events/event.h>
 
@@ -70,7 +67,7 @@ public:
      * Constructors / Destructors
      *************************************************************************/
 
-    Gpio();
+    Gpio() = default;
     ~Gpio();
 
     /**************************************************************************
@@ -109,29 +106,22 @@ protected:
      * Members
      *************************************************************************/
 
-    int m_fd;
-    int m_pipe[2];
+    int m_fd = 0;
+    int m_pipe[2] = { 0, 0 };
+
+    bool m_threadRunning = false;
 
     std::map<int, int> m_fdsByPins; /// for quick access to GPIO num from polling
     std::map<int, int> m_pinsByFds; /// for quick access to GPIO num from polling
     std::map<int, Direction> m_directionsByPins;
     std::map<int, unsigned int> m_valuesByFds;
 
-    std::thread *m_pollingThread;
+    std::thread *m_pollingThread = nullptr;
     std::vector<pollfd> m_pollFds;
-    bool m_threadRunning;
 
     std::mutex m_interruptMutex;
     std::mutex m_workerThreadMutex;
 };
-
-// enum class Gpio::Direction ;
-
-// enum class Gpio::Error ;
-
-// enum class Gpio::Value ;
-
-// enum class Gpio::BiasMode ;
 
 } // namespace Hlk
 

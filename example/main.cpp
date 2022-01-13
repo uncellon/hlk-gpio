@@ -40,11 +40,11 @@ int main(int argc, char *argv[]) {
     gpio.onInputChanged.addEventHandler(
         [] (int pin, Gpio::Value value) {
             switch (value) {
-            case Gpio::Value::kLow:
+            case Gpio::kLow:
                 std::cout << pin << " " << "low\n";
                 break;
 
-            case Gpio::Value::kHigh:
+            case Gpio::kHigh:
                 std::cout << pin << " " << "high\n";
                 break;
             default:

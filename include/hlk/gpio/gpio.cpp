@@ -26,7 +26,6 @@
 #include <cstring>
 #include <fcntl.h>
 #include <unistd.h>
-#include <iostream>
 #include <sys/ioctl.h>
 #include <linux/gpio.h>
 
@@ -35,12 +34,6 @@ namespace Hlk {
 /******************************************************************************
  * Constructors / Destructors
  *****************************************************************************/
-
-Gpio::Gpio() 
-: m_fd(0), 
-  m_pipe{0, 0},
-  m_pollingThread(nullptr), 
-  m_threadRunning(false) { }
 
 Gpio::~Gpio() {
     close();
@@ -271,6 +264,10 @@ void Gpio::setBiasMode(int pin, BiasMode mode) {
         return;
     }
 }
+
+/******************************************************************************
+ * Methods (Protected)
+ *****************************************************************************/
 
 void Gpio::polling() {
     int ret = 0;
