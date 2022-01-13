@@ -14,6 +14,7 @@ The library implements a simple interface for accessing the GPIO through the [us
 
 - Linux kernel >= 5.10
 - CMake >= 3.16
+- [HlkEvents](https://github.com/uncellon/hlk-events) >= 1.0.0
 
 ## Examples
 
