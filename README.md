@@ -1,6 +1,7 @@
 # Homebrew Libraries Kit - GPIO
 
 - [Description](#description)
+- [Prerequisites](#prerequisites)
 - [Examples](#examples)
     - [Input watching](#input-watching)
     - [Output changing](#output-changing)
