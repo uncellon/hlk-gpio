@@ -121,6 +121,7 @@ protected:
 
     std::mutex m_interruptMutex;
     std::mutex m_workerThreadMutex;
+    std::mutex m_pollfdsMutex;
 };
 
 } // namespace Hlk

@@ -48,14 +48,14 @@ void Gpio::open(const std::string &dev) {
 
     // Check opening
     if (m_fd) {
-        onError(Error::kAlreadyOpened);
+        onError(kAlreadyOpened);
         return;
     }
 
     // Create pipe
     int ret = pipe(m_pipe);
     if (ret == -1) {
-        onError(Error::kFailedToCreatePipe);
+        onError(kFailedToCreatePipe);
         return;
     }
 
@@ -63,12 +63,12 @@ void Gpio::open(const std::string &dev) {
     m_fd = ::open(dev.c_str(), O_RDWR);
     if (m_fd == -1) {
         m_fd = 0;
-        onError(Error::kFailedToOpen);
+        onError(kFailedToOpen);
         return;
     }
 
     m_pollFds.clear();
-    m_pollFds.emplace_back(pollfd { m_pipe[0], POLLIN });
+    m_pollFds.emplace_back( pollfd { m_pipe[0], POLLIN } );
 
     m_threadRunning = true;
     m_pollingThread = new std::thread(&Gpio::polling, this);
@@ -101,8 +101,8 @@ void Gpio::close() {
 
 Gpio::Value Gpio::value(int pin) {
     if (m_fd == 0) {
-        onError(Error::kDeviceNotOpened);
-        return Value::kIdle;
+        onError(kDeviceNotOpened);
+        return kIdle;
     }
 
     struct gpio_v2_line_values lineValues;
@@ -111,26 +111,25 @@ Gpio::Value Gpio::value(int pin) {
 
     int ret = ioctl(m_fdsByPins[pin], GPIO_V2_LINE_GET_VALUES_IOCTL, &lineValues);
     if (ret == -1) {
-        onError(Error::kFailedToGetValue);
-        return Value::kIdle;
+        onError(kFailedToGetValue);
+        return kIdle;
     }
     
     if (lineValues.bits) {
-        return Value::kHigh;
-    } else {
-        return Value::kLow;
+        return kHigh;
     }
+    return kLow;
 }
 
 void Gpio::setValue(int pin, Value value) {
     if (m_fd == 0) {
-        onError(Error::kDeviceNotOpened);
+        onError(kDeviceNotOpened);
         return;
     }
 
     if (m_fdsByPins.find(pin) == m_fdsByPins.end() 
-        || m_directionsByPins[pin] != Direction::kOutput) {
-        onError(Error::kPinIsNotOutput);
+        || m_directionsByPins[pin] != kOutput) {
+        onError(kPinIsNotOutput);
         return;
     }
 
@@ -140,29 +139,29 @@ void Gpio::setValue(int pin, Value value) {
     config.flags = GPIO_V2_LINE_FLAG_OUTPUT;
 
     switch (value) {
-    case Value::kLow:
+    case kLow:
         config.flags &= ~GPIO_V2_LINE_FLAG_ACTIVE_LOW;
         break;
 
-    case Value::kHigh:
+    case kHigh:
         config.flags |= GPIO_V2_LINE_FLAG_ACTIVE_LOW;
         break;
 
     default:
-        onError(Error::kInvalidValue);
+        onError(kInvalidValue);
         return;
     }
 
     int ret = ioctl(m_fdsByPins[pin], GPIO_V2_LINE_SET_CONFIG_IOCTL, &config);
     if (ret == -1) {
-        onError(Error::kFailedToSetValue);
+        onError(kFailedToSetValue);
         return;
     }
 }
 
 void Gpio::setDirection(int pin, Direction mode) {
     if (m_fd == 0) {
-        onError(Error::kDeviceNotOpened);
+        onError(kDeviceNotOpened);
         return;
     }
 
@@ -170,29 +169,32 @@ void Gpio::setDirection(int pin, Direction mode) {
         // Send "soft" interrupt to pause polling thread
         std::unique_lock lock(m_interruptMutex);
         char code = '0';
-        write(m_pipe[1], &code, sizeof(code));
+        write(m_pipe[1], &code, sizeof(char));
 
+        m_pollfdsMutex.lock();
         for (size_t i = 0; i < m_pollFds.size(); ++i) {
             if (m_fdsByPins[pin] != m_pollFds[i].fd) {
                 continue;
             }
 
             ::close(m_fdsByPins[pin]);
+            m_fdsByPins.erase(pin);
             m_pollFds.erase(m_pollFds.begin() + i);
 
             break;
         }
+        m_pollfdsMutex.unlock();
     }
 
     // Create empty request
     struct gpio_v2_line_request request;
-    memset(&request, 0, sizeof(request));
+    memset(&request, 0, sizeof(gpio_v2_line_request));
 
     request.offsets[0] = pin;
     request.num_lines = 1;
 
     switch (mode) {
-    case Direction::kInput:
+    case kInput:
         request.config.flags = 
             GPIO_V2_LINE_FLAG_INPUT | 
             GPIO_V2_LINE_FLAG_EDGE_RISING | 
@@ -201,6 +203,9 @@ void Gpio::setDirection(int pin, Direction mode) {
 
     case Direction::kOutput:
         request.config.flags = GPIO_V2_LINE_FLAG_OUTPUT;
+        break;
+    default:
+        throw std::runtime_error("GPIO::SET_DIRECTION: Invalid direction");
         break;
     }
 
@@ -223,9 +228,11 @@ void Gpio::setDirection(int pin, Direction mode) {
     // Send "soft" interrupt to pause polling thread
     std::unique_lock lock(m_interruptMutex);
     char code = '0';
-    write(m_pipe[1], &code, sizeof(code));
+    write(m_pipe[1], &code, sizeof(char));
 
-    m_pollFds.emplace_back( pollfd { request.fd, POLLIN } );
+    m_pollfdsMutex.lock();
+    m_pollFds.push_back( pollfd { request.fd, POLLIN } );
+    m_pollfdsMutex.unlock();
 }
 
 void Gpio::setBiasMode(int pin, BiasMode mode) {
@@ -276,7 +283,9 @@ void Gpio::polling() {
     char buf;
 
     while (m_threadRunning) {
+        m_pollfdsMutex.lock();
         ret = poll(m_pollFds.data(), m_pollFds.size(), -1);
+        m_pollfdsMutex.unlock();
 
         if (ret == -1) {
             onError(Error::kPollingError);
@@ -286,10 +295,12 @@ void Gpio::polling() {
         // Check "soft" interrupt
         if (m_pollFds[0].revents & POLLIN) {
             m_pollFds[0].revents = 0;
-            std::unique_lock lock(m_interruptMutex);
-            read(m_pipe[0], &buf, 1);
+            m_interruptMutex.lock();
+            read(m_pipe[0], &buf, sizeof(buf));
+            m_interruptMutex.unlock();
         }
 
+        m_pollfdsMutex.lock();
         for (i = 1; i < m_pollFds.size(); ++i) {
             if (!(m_pollFds[i].revents & POLLIN)) {
                 continue;
@@ -297,10 +308,10 @@ void Gpio::polling() {
 
             m_pollFds[i].revents = 0;
 
-            memset(&event, 0 ,sizeof(event));
+            memset(&event, 0 ,sizeof(gpio_v2_line_event));
             read(m_pollFds[i].fd, &event, sizeof(event));
 
-            // check previous pin value
+            // Check previous pin value
             if (m_valuesByFds[m_pollFds[i].fd] == event.id) {
                 continue;
             }
@@ -308,14 +319,15 @@ void Gpio::polling() {
 
             switch (event.id) {
             case GPIO_V2_LINE_EVENT_RISING_EDGE:
-                onInputChanged(m_pinsByFds[m_pollFds[i].fd], Gpio::Value::kHigh);
+                onInputChanged(m_pinsByFds[m_pollFds[i].fd], kHigh);
                 break;
 
             case GPIO_V2_LINE_EVENT_FALLING_EDGE:
-                onInputChanged(m_pinsByFds[m_pollFds[i].fd], Gpio::Value::kLow);
+                onInputChanged(m_pinsByFds[m_pollFds[i].fd], kLow);
                 break;
             }
         }
+        m_pollfdsMutex.unlock();
     }
 }
 
